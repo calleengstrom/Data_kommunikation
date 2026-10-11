@@ -97,6 +97,11 @@ namespace RpiApp.Services
                 }
                 Console.WriteLine("Data from MQTT Topic : ");
                 Console.WriteLine(data);
+                foreach(var d in data.Measurements)
+                {
+                    Console.WriteLine($"Measurement type : {d.MeasuremnetType} Value : {d.Value} Unit : {d.Unit} ");
+
+                }
                 measurementCache.UpdateCacheMeasuremnets(data);
 
 
