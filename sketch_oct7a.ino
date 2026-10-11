@@ -6,20 +6,26 @@
 #include <esp_idf_version.h>
 
 
-class Payload_t {
+namespace Device_n {
+constexpr char deviceId[] = "esp_temp_04:B2:47:97:C5:48";
+constexpr char location[] = "Office";
+}
 
+
+class Measurement_t {
 private:
-  float value;
-  String unit;
-  const char *DEVICE_ID;
+    const String measurementType;
+    const float value;
+    const String unit;
 
-public:
+  public : 
+  Measurement_t() = default;
+  Measurement_t(String const measurementType, float const value, String const unit)
+    : measurementType(measurementType), value(value), unit(unit) {}
 
-  Payload_t() = default;
-
-  Payload_t(float const value, String const unit)
-    : value(value), unit(unit), DEVICE_ID("esp_temp_04:B2:47:97:C5:48") {}
-
+  String getMeasurementType() const {
+    return measurementType;
+  }
 
   float getValue() const {
     return value;
@@ -27,9 +33,41 @@ public:
   String getUnit() const {
     return unit;
   }
-  const char *getDeviceId() const {
-    return DEVICE_ID;
+
+
+  bool isValid(){
+    return isfinite(value);
   }
+
+};
+
+
+class Payload_t {
+
+  private:
+    const String deviceId;
+    const Measurement_t measurements[2];
+    const String location;
+
+  public:
+
+    Payload_t() = default;
+
+    Payload_t(String const deviceId,Measurement_t const measurements[2],String const location)
+     : deviceId(deviceId), measurements{measurements[0], measurements[1]}, location(location) {}
+
+
+    const String getLocation(){
+      return location;
+    }
+
+    const Measurement_t* getMeasurements() const{
+      return measurements;
+    }
+
+    const String getDeviceId() const {
+      return deviceId;
+    }
 };
 
 
@@ -69,7 +107,7 @@ void initDHT() {
   delay(1000);
 }
 
-float getTemperature() {
+float getTemperatureValue() {
   return dht.readTemperature();
 }
 String getTemperatureUnit() {
@@ -77,7 +115,7 @@ String getTemperatureUnit() {
 }
 
 
-float getHumidity() {
+float getHumidityValue() {
   return dht.readHumidity();
 }
 
@@ -86,11 +124,11 @@ String getHumidityUnit() {
 }
 
 void printTemperature() {
-  Serial.println("Temp  : " + String(getTemperature(), 2) + "°C");
+  Serial.println("Temp  : " + String(getTemperatureValue(), 2) + "°C");
 }
 
 void printHumidity() {
-  Serial.println("Humidity : " + String(getHumidity(), 2) + "%");
+  Serial.println("Humidity : " + String(getHumidityValue(), 2) + "%");
 }
 }
 
@@ -125,7 +163,7 @@ void mqttPub(String payload) {
 
   lastPubTime = currentTime;
 
-  mqttClient.publish(MQTT_TOPIC,payload.c_str(),0,false);
+  mqttClient.publish(MQTT_TOPIC, payload.c_str(), 0, false);
 }
 
 };
@@ -149,14 +187,10 @@ void handleMQTT(void *handler_args, esp_event_base_t base, int32_t event_id, voi
 #endif
 
 
-String jsonParser(const Payload_t& payloadTest) {
+// String jsonParser(const Payload_t& payloadTest) {
 
-  return String("{") +
-         "\"DeviceId\":\"" + payloadTest.getDeviceId() + "\"," +
-         "\"Value\":" + String(payloadTest.getValue(), 1) + "," +
-         "\"unit\":\"" + payloadTest.getUnit() + "\"" +
-         "}";
-}
+//   return String("{") + "\"deviceId\":\"" + payloadTest.getdeviceId() + "\"," + "\"Value\":" + String(payloadTest.getValue(), 1) + "," + "\"unit\":\"" + payloadTest.getUnit() + "\"" + "}";
+// }
 
 
 void setup() {
@@ -169,17 +203,30 @@ void setup() {
 
 void loop() {
 
-
-  Payload_t payloadTest(DHT11_n::getTemperature(), DHT11_n::getTemperatureUnit());
-  if(!isnan(payloadTest.getValue()))
+  Measurement_t temperature("Temperatue",DHT11_n::getTemperatureValue(),DHT11_n::getTemperatureUnit());
+  Measurement_t humidity("Humidity",DHT11_n::getHumidityValue(),DHT11_n::getHumidityUnit());
+  if(temperature.isValid() && humidity.isValid())
   {
-
-    String jsonPayload = jsonParser(payloadTest);
-    Serial.println(jsonPayload);
-    Mqtt_n::mqttPub(jsonPayload);
+    Measurement_t measurements[] = {temperature,humidity};
+    Payload_t payload(Device_n::deviceId, measurements, Device_n::location);
+    Serial.println(
+    payload.getDeviceId() +
+    " | " + payload.getMeasurements()[0].getMeasurementType() +
+    ": " + String(payload.getMeasurements()[0].getValue(), 1) +
+    " " + payload.getMeasurements()[0].getUnit() +
+    " | " + payload.getMeasurements()[1].getMeasurementType() +
+    ": " + String(payload.getMeasurements()[1].getValue(), 1) +
+    " " + payload.getMeasurements()[1].getUnit() +
+    " | Location: " + payload.getLocation()
+);
   }
+
+  // Payload_t payloadTest();
+  // if (!isnan(payloadTest.getValue())) {
+
+  //   String jsonPayload = jsonParser(payloadTest);
+  //   // Serial.println(jsonPayload);
+  //   Mqtt_n::mqttPub(jsonPayload);
+  // }
   delay(5000);
-
-
-  
 }
