@@ -99,7 +99,7 @@ namespace RpiApp.Services
                 Console.WriteLine(data);
                 foreach(var d in data.Measurements)
                 {
-                    Console.WriteLine($"Measurement type : {d.MeasuremnetType} Value : {d.Value} Unit : {d.Unit} ");
+                    Console.WriteLine($"Measurement type : {d.MeasurementType} Value : {d.Value} Unit : {d.Unit} ");
 
                 }
                 measurementCache.UpdateCacheMeasuremnets(data);
