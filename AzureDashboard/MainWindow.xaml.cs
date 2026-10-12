@@ -5,6 +5,7 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Media;
 using System;
 using System.Globalization;
+using System.Linq;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
@@ -19,7 +20,8 @@ namespace AzureDashboard
 
         private readonly string? _connectionString =
             Environment.GetEnvironmentVariable(
-                "AZURE_EVENTHUB_CONNECTION_STRING")?? "xxx";
+                "AZURE_EVENTHUB_CONNECTION_STRING")?? 
+            "xxx";
 
 
         public MainWindow()
@@ -128,88 +130,110 @@ namespace AzureDashboard
             }
         }
 
+
         private static SensorData ParseMessage(string json)
         {
-            using var document = JsonDocument.Parse(json);
-
-            var root = document.RootElement;
-
-            var result = new SensorData
+            var options = new JsonSerializerOptions
             {
-                GatewayId = root.GetProperty("DeviceId")
-                                .GetString() ?? "--",
-
-                SentAt = root.GetProperty("SentAt")
-                             .GetDateTimeOffset()
+                PropertyNameCaseInsensitive = true
             };
 
-            var devices = root.GetProperty("Measurements");
+            var result = JsonSerializer.Deserialize<SensorData>(json, options);
 
-            if (devices.GetArrayLength() == 0)
-                throw new JsonException("No devices found.");
-
-            // Display the first device in this version.
-            var device = devices[0];
-
-            result.DeviceId =
-                device.GetProperty("DeviceId").GetString() ?? "--";
-
-            result.Location =
-                device.GetProperty("Location").GetString() ?? "--";
-
-            foreach (var measurement in
-                device.GetProperty("Measurements").EnumerateArray())
-            {
-                var type = measurement
-                    .GetProperty("MeasurementType")
-                    .GetString();
-
-                var value = measurement
-                    .GetProperty("Value")
-                    .GetDouble();
-
-                var unit = measurement
-                    .GetProperty("Unit")
-                    .GetString() ?? "";
-
-                if (string.Equals(type, "Temperature",
-                        StringComparison.OrdinalIgnoreCase) ||
-                    string.Equals(type, "Temperatue",
-                        StringComparison.OrdinalIgnoreCase))
-                {
-                    result.Temperature = value;
-                    result.TemperatureUnit = unit;
-                }
-                else if (string.Equals(type, "Humidity",
-                             StringComparison.OrdinalIgnoreCase))
-                {
-                    result.Humidity = value;
-                    result.HumidityUnit = unit;
-                }
-            }
+            if (result == null)
+                throw new JsonException("Failed to parse sensor data.");
 
             return result;
         }
 
-        private void UpdateDashboard(SensorData data)
+
+        public void UpdateDashboard(SensorData data)
         {
-            DeviceIdText.Text = data.DeviceId;
-            LocationText.Text = $"Location: {data.Location}";
+
+            //reflektion, om man vill ha en mer dynamsik update kan man köra en foreach 
+
+            //foreach(var dm in data.MeasurementsPackage)
+            //{
+            //    set varje rad till respektive text / data
+            //}
+            // Dock behöver man en dynamsik panel / gui som lägger till flera rader per device
+
+
+
+            GatewayText.Text = $"Gateway: {data.GatewayId}";
+            
+
+
+            var deviceMeasurements = data.MeasurementsPackage.First();
+            
+
+            DeviceIdText.Text = deviceMeasurements.DeviceId;
+
+
+            var temperature = deviceMeasurements.Measurements
+                .FirstOrDefault(m => m.MeasurementType == "Temperatue");
+
+            var humidity = deviceMeasurements.Measurements
+                .FirstOrDefault(m => m.MeasurementType == "Humidity");
+           
+            if (temperature == null || humidity == null) 
+            {
+                return;
+
+            }
 
             var culture = CultureInfo.GetCultureInfo("sv-SE");
 
-            TemperatureText.Text = data.Temperature.HasValue
-                ? $"{data.Temperature.Value.ToString("0.0", culture)} {data.TemperatureUnit}"
-                : "--";
+            LocationText.Text = $"Location: {deviceMeasurements.Location}";
 
-            HumidityText.Text = data.Humidity.HasValue
-                ? $"{data.Humidity.Value.ToString("0.0", culture)} {data.HumidityUnit}"
-                : "--";
+            TemperatureText.Text = temperature.Value.ToString();
 
-            GatewayText.Text = $"Gateway: {data.GatewayId}";
+                //? $"{data.Temperature.Value.ToString("0.0", culture)} {data.TemperatureUnit}"
+                //: "--";
+
+            HumidityText.Text = humidity.Value.ToString();
+
+                //? $"{data.Humidity.Value.ToString("0.0", culture)} {data.HumidityUnit}"
+                //: "--";
+
+
+
+            //*********************************************************************************
+
+            deviceMeasurements = data.MeasurementsPackage.Last();
+            temperature = deviceMeasurements.Measurements
+                .FirstOrDefault(m => m.MeasurementType == "Temperatue");
+
+            humidity = deviceMeasurements.Measurements
+                .FirstOrDefault(m => m.MeasurementType == "Humidity");
+
+
+            DeviceIdText2.Text = deviceMeasurements.DeviceId;
+
+            if (temperature == null || humidity == null)
+            {
+                return;
+
+            }
+
+            LocationText2.Text = $"Location: {deviceMeasurements.Location}";
+
+            TemperatureText2.Text = temperature.Value.ToString();
+
+            //? $"{data.Temperature.Value.ToString("0.0", culture)} {data.TemperatureUnit}"
+            //: "--";
+
+            HumidityText2.Text = humidity.Value.ToString();
+
+            //? $"{data.Humidity.Value.ToString("0.0", culture)} {data.HumidityUnit}"
+            //: "--";
+
+
+
 
             LastUpdateText.Text =
                 $"Last update: {data.SentAt.ToLocalTime():yyyy-MM-dd HH:mm:ss}";
+
         }
 
         private void SetStatus(string message, bool connected)
