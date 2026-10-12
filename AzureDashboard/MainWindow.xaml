@@ -63,30 +63,31 @@
                 <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
 
-            <!-- Device information -->
+
+            <!-- Device 1 information -->
             <Border Grid.Column="0"
-                    Background="#1D2A3C"
-                    CornerRadius="12"
-                    Padding="20">
+                Background="#1D2A3C"
+                CornerRadius="12"
+                Padding="20">   
 
                 <StackPanel Spacing="8"
-                            VerticalAlignment="Center">
-
-                    <TextBlock Text="DEVICE 1"
-                               Foreground="#80ACF8"
-                               FontSize="13"/>
-
-                    <TextBlock x:Name="DeviceIdText"
-                               Text="Waiting for data..."
-                               Foreground="White"
-                               FontSize="16"
-                               TextWrapping="Wrap"/>
+                VerticalAlignment="Center">
 
                     <TextBlock x:Name="LocationText"
-                               Text="Location: --"
-                               Foreground="#99ABC4"/>
+                   Text="Waiting for location..."
+                   Foreground="White"
+                   FontSize="24"
+                   FontWeight="Bold"/>
+
+                    <TextBlock x:Name="DeviceIdText"
+                   Text="Waiting for device..."
+                   Foreground="#99ABC4"
+                   FontSize="13"
+                   TextWrapping="Wrap"/>
+
                 </StackPanel>
             </Border>
+
 
             <!-- Temperature -->
             <Border Grid.Column="1"
@@ -142,30 +143,31 @@
                 <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
 
-            <!-- Device information -->
+
+            <!-- Device 2 information -->
             <Border Grid.Column="0"
-                    Background="#1D2A3C"
-                    CornerRadius="12"
-                    Padding="20">
+                Background="#1D2A3C"
+                CornerRadius="12"
+                Padding="20">
 
                 <StackPanel Spacing="8"
-                            VerticalAlignment="Center">
-
-                    <TextBlock Text="DEVICE 2"
-                               Foreground="#80ACF8"
-                               FontSize="13"/>
-
-                    <TextBlock x:Name="DeviceIdText2"
-                               Text="Waiting for data..."
-                               Foreground="White"
-                               FontSize="16"
-                               TextWrapping="Wrap"/>
+                VerticalAlignment="Center">
 
                     <TextBlock x:Name="LocationText2"
-                               Text="Location: --"
-                               Foreground="#99ABC4"/>
+                   Text="Waiting for location..."
+                   Foreground="White"
+                   FontSize="24"
+                   FontWeight="Bold"/>
+
+                    <TextBlock x:Name="DeviceIdText2"
+                   Text="Waiting for device..."
+                   Foreground="#99ABC4"
+                   FontSize="13"
+                   TextWrapping="Wrap"/>
+
                 </StackPanel>
             </Border>
+
 
             <!-- Temperature -->
             <Border Grid.Column="1"

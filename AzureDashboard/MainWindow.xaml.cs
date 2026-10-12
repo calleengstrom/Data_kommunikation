@@ -20,9 +20,8 @@ namespace AzureDashboard
 
         private readonly string? _connectionString =
             Environment.GetEnvironmentVariable(
-                "AZURE_EVENTHUB_CONNECTION_STRING")?? 
-            "xxxx";
-
+                "AZURE_EVENTHUB_CONNECTION_STRING") ??
+            "xxx";
 
         public MainWindow()
         {
@@ -186,16 +185,13 @@ namespace AzureDashboard
 
             LocationText.Text = $"Location: {deviceMeasurements.Location}";
 
-            TemperatureText.Text = temperature.Value.ToString();
+            TemperatureText.Text = $"{temperature.Value}{temperature.Unit}";
+            
+              
 
-                //? $"{data.Temperature.Value.ToString("0.0", culture)} {data.TemperatureUnit}"
-                //: "--";
+            HumidityText.Text = $"{humidity.Value}{humidity.Unit}";
 
-            HumidityText.Text = humidity.Value.ToString();
-
-                //? $"{data.Humidity.Value.ToString("0.0", culture)} {data.HumidityUnit}"
-                //: "--";
-
+            
 
 
             //*********************************************************************************
@@ -218,12 +214,12 @@ namespace AzureDashboard
 
             LocationText2.Text = $"Location: {deviceMeasurements.Location}";
 
-            TemperatureText2.Text = temperature.Value.ToString();
+            TemperatureText2.Text = $"{temperature.Value}{temperature.Unit}";
 
             //? $"{data.Temperature.Value.ToString("0.0", culture)} {data.TemperatureUnit}"
             //: "--";
 
-            HumidityText2.Text = humidity.Value.ToString();
+            HumidityText2.Text = $"{humidity.Value}{humidity.Unit}";   
 
             //? $"{data.Humidity.Value.ToString("0.0", culture)} {data.HumidityUnit}"
             //: "--";
