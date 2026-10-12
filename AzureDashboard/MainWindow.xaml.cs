@@ -21,7 +21,7 @@ namespace AzureDashboard
         private readonly string? _connectionString =
             Environment.GetEnvironmentVariable(
                 "AZURE_EVENTHUB_CONNECTION_STRING")?? 
-            "xxx";
+            "xxxx";
 
 
         public MainWindow()
