@@ -11,13 +11,13 @@ if (string.IsNullOrWhiteSpace(connectionString))
 }
 
 var options = new GatewayOptions(
-    GatewayName: "xxxx",
-    MqttHost: Environment.GetEnvironmentVariable("MQTT_HOST") ?? "xxxx",
+    GatewayName: "crpi",
+    MqttHost: Environment.GetEnvironmentVariable("MQTT_HOST") ?? "192.168.0.240",
     MqttPort: 1883,
     AzureConnectionString: connectionString,
     AzureSendInterval: TimeSpan.FromSeconds(60),
-    MqttUsername: "xxxx", 
-    MqttPassword: "xxxx")
+    MqttUsername: "main_pc", 
+    MqttPassword: "BytMig123!")
     ;
 
 using var shutdown = new CancellationTokenSource();

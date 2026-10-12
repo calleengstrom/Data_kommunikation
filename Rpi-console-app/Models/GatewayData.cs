@@ -6,8 +6,9 @@ namespace RpiApp.Models
 {
     public record GatewayData
     (
-        string DeviceId,
+        string GatewayId,
         DateTimeOffset? SentAt,
-        List<RequestModel> Measurements
+        List<RequestModel> MeasurementsPackage
         ){}
 }
+
