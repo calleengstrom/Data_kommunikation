@@ -1,5 +1,6 @@
 
 using Azure.Messaging.EventHubs.Consumer;
+using AzureDashboard.Models;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Media;
 using System;
@@ -221,20 +222,5 @@ namespace AzureDashboard
                         ? Color.FromArgb(255, 74, 222, 128)
                         : Color.FromArgb(255, 248, 113, 113));
         }
-    }
-
-    public sealed class SensorData
-    {
-        public string GatewayId { get; set; } = "--";
-        public string DeviceId { get; set; } = "--";
-        public string Location { get; set; } = "--";
-
-        public double? Temperature { get; set; }
-        public string TemperatureUnit { get; set; } = "°C";
-
-        public double? Humidity { get; set; }
-        public string HumidityUnit { get; set; } = "%";
-
-        public DateTimeOffset SentAt { get; set; }
     }
 }

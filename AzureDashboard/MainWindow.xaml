@@ -52,74 +52,159 @@
             </StackPanel>
         </Grid>
 
-        <!-- Device information -->
-        <Border Grid.Row="1"
-                Background="#1D2A3C"
-                CornerRadius="12"
-                Padding="20">
-
-            <StackPanel Spacing="8">
-
-                <TextBlock Text="DEVICE ID"
-                           Foreground="#99ABC4"
-                           FontSize="13"/>
-
-                <TextBlock x:Name="DeviceIdText"
-                           Text="Waiting for data..."
-                           Foreground="White"
-                           FontSize="20"
-                           TextWrapping="Wrap"/>
-
-                <TextBlock x:Name="LocationText"
-                           Text="Location: --"
-                           Foreground="#99ABC4"/>
-
-            </StackPanel>
-        </Border>
-
-        <!-- Measurements -->
-        <Grid Grid.Row="2"
-              ColumnSpacing="16">
+        <!-- Device 1 -->
+        <Grid Grid.Row="1"
+              ColumnSpacing="16"
+              MinHeight="130">
 
             <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="2*"/>
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
 
-            <!-- Temperature -->
+            <!-- Device information -->
             <Border Grid.Column="0"
                     Background="#1D2A3C"
                     CornerRadius="12"
                     Padding="20">
 
-                <StackPanel Spacing="12">
-                    <TextBlock Text="TEMPERATURE"
-                               Foreground="#FFAD72"
-                               FontSize="14"/>
+                <StackPanel Spacing="8"
+                            VerticalAlignment="Center">
 
-                    <TextBlock x:Name="TemperatureText"
-                               Text="-- °C"
+                    <TextBlock Text="DEVICE 1"
+                               Foreground="#80ACF8"
+                               FontSize="13"/>
+
+                    <TextBlock x:Name="DeviceIdText"
+                               Text="Waiting for data..."
                                Foreground="White"
-                               FontSize="34"
-                               FontWeight="Bold"/>
+                               FontSize="16"
+                               TextWrapping="Wrap"/>
+
+                    <TextBlock x:Name="LocationText"
+                               Text="Location: --"
+                               Foreground="#99ABC4"/>
                 </StackPanel>
             </Border>
 
-            <!-- Humidity -->
+            <!-- Temperature -->
             <Border Grid.Column="1"
                     Background="#1D2A3C"
                     CornerRadius="12"
                     Padding="20">
 
-                <StackPanel Spacing="12">
+                <StackPanel Spacing="12"
+                            VerticalAlignment="Center">
+
+                    <TextBlock Text="TEMPERATURE"
+                               Foreground="#FFAD72"
+                               FontSize="13"/>
+
+                    <TextBlock x:Name="TemperatureText"
+                               Text="-- °C"
+                               Foreground="White"
+                               FontSize="30"
+                               FontWeight="Bold"/>
+                </StackPanel>
+            </Border>
+
+            <!-- Humidity -->
+            <Border Grid.Column="2"
+                    Background="#1D2A3C"
+                    CornerRadius="12"
+                    Padding="20">
+
+                <StackPanel Spacing="12"
+                            VerticalAlignment="Center">
+
                     <TextBlock Text="HUMIDITY"
                                Foreground="#69CBFF"
-                               FontSize="14"/>
+                               FontSize="13"/>
 
                     <TextBlock x:Name="HumidityText"
                                Text="-- %"
                                Foreground="White"
-                               FontSize="34"
+                               FontSize="30"
+                               FontWeight="Bold"/>
+                </StackPanel>
+            </Border>
+        </Grid>
+
+        <!-- Device 2 -->
+        <Grid Grid.Row="2"
+              ColumnSpacing="16"
+              MinHeight="130">
+
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="2*"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Device information -->
+            <Border Grid.Column="0"
+                    Background="#1D2A3C"
+                    CornerRadius="12"
+                    Padding="20">
+
+                <StackPanel Spacing="8"
+                            VerticalAlignment="Center">
+
+                    <TextBlock Text="DEVICE 2"
+                               Foreground="#80ACF8"
+                               FontSize="13"/>
+
+                    <TextBlock x:Name="DeviceIdText2"
+                               Text="Waiting for data..."
+                               Foreground="White"
+                               FontSize="16"
+                               TextWrapping="Wrap"/>
+
+                    <TextBlock x:Name="LocationText2"
+                               Text="Location: --"
+                               Foreground="#99ABC4"/>
+                </StackPanel>
+            </Border>
+
+            <!-- Temperature -->
+            <Border Grid.Column="1"
+                    Background="#1D2A3C"
+                    CornerRadius="12"
+                    Padding="20">
+
+                <StackPanel Spacing="12"
+                            VerticalAlignment="Center">
+
+                    <TextBlock Text="TEMPERATURE"
+                               Foreground="#FFAD72"
+                               FontSize="13"/>
+
+                    <TextBlock x:Name="TemperatureText2"
+                               Text="-- °C"
+                               Foreground="White"
+                               FontSize="30"
+                               FontWeight="Bold"/>
+                </StackPanel>
+            </Border>
+
+            <!-- Humidity -->
+            <Border Grid.Column="2"
+                    Background="#1D2A3C"
+                    CornerRadius="12"
+                    Padding="20">
+
+                <StackPanel Spacing="12"
+                            VerticalAlignment="Center">
+
+                    <TextBlock Text="HUMIDITY"
+                               Foreground="#69CBFF"
+                               FontSize="13"/>
+
+                    <TextBlock x:Name="HumidityText2"
+                               Text="-- %"
+                               Foreground="White"
+                               FontSize="30"
                                FontWeight="Bold"/>
                 </StackPanel>
             </Border>
@@ -137,7 +222,6 @@
             <TextBlock x:Name="LastUpdateText"
                        Text="Last update: --"
                        Foreground="#99ABC4"/>
-
         </StackPanel>
 
     </Grid>
