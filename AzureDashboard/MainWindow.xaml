@@ -1,19 +1,144 @@
-<?xml version="1.0" encoding="utf-8"?>
 <Window
     x:Class="AzureDashboard.MainWindow"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:local="using:AzureDashboard"
-    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-    mc:Ignorable="d"
-    Title="AzureDashboard">
+    xmlns:local="using:AzureDashboard">
 
-    <Window.SystemBackdrop>
-        <MicaBackdrop />
-    </Window.SystemBackdrop>
+    <Grid Background="#101827"
+          Padding="30"
+          RowSpacing="20">
 
-    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <Grid Grid.Row="0">
+            <StackPanel>
+                <TextBlock Text="AZURE DASHBOARD"
+                           Foreground="#80ACF8"
+                           FontSize="13"/>
+
+                <TextBlock Text="Sensor Monitor"
+                           Foreground="White"
+                           FontSize="30"
+                           FontWeight="Bold"/>
+            </StackPanel>
+
+            <StackPanel HorizontalAlignment="Right"
+                        VerticalAlignment="Center"
+                        Spacing="8">
+
+                <TextBlock x:Name="ConnectionStatus"
+                           Text="Disconnected"
+                           Foreground="#F87171"
+                           HorizontalAlignment="Right"/>
+
+                <StackPanel Orientation="Horizontal"
+                            Spacing="8">
+
+                    <Button x:Name="ConnectButton"
+                            Content="Connect"
+                            Click="ConnectButton_Click"/>
+
+                    <Button x:Name="DisconnectButton"
+                            Content="Disconnect"
+                            Click="DisconnectButton_Click"
+                            IsEnabled="False"/>
+                </StackPanel>
+            </StackPanel>
+        </Grid>
+
+        <!-- Device information -->
+        <Border Grid.Row="1"
+                Background="#1D2A3C"
+                CornerRadius="12"
+                Padding="20">
+
+            <StackPanel Spacing="8">
+
+                <TextBlock Text="DEVICE ID"
+                           Foreground="#99ABC4"
+                           FontSize="13"/>
+
+                <TextBlock x:Name="DeviceIdText"
+                           Text="Waiting for data..."
+                           Foreground="White"
+                           FontSize="20"
+                           TextWrapping="Wrap"/>
+
+                <TextBlock x:Name="LocationText"
+                           Text="Location: --"
+                           Foreground="#99ABC4"/>
+
+            </StackPanel>
+        </Border>
+
+        <!-- Measurements -->
+        <Grid Grid.Row="2"
+              ColumnSpacing="16">
+
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Temperature -->
+            <Border Grid.Column="0"
+                    Background="#1D2A3C"
+                    CornerRadius="12"
+                    Padding="20">
+
+                <StackPanel Spacing="12">
+                    <TextBlock Text="TEMPERATURE"
+                               Foreground="#FFAD72"
+                               FontSize="14"/>
+
+                    <TextBlock x:Name="TemperatureText"
+                               Text="-- °C"
+                               Foreground="White"
+                               FontSize="34"
+                               FontWeight="Bold"/>
+                </StackPanel>
+            </Border>
+
+            <!-- Humidity -->
+            <Border Grid.Column="1"
+                    Background="#1D2A3C"
+                    CornerRadius="12"
+                    Padding="20">
+
+                <StackPanel Spacing="12">
+                    <TextBlock Text="HUMIDITY"
+                               Foreground="#69CBFF"
+                               FontSize="14"/>
+
+                    <TextBlock x:Name="HumidityText"
+                               Text="-- %"
+                               Foreground="White"
+                               FontSize="34"
+                               FontWeight="Bold"/>
+                </StackPanel>
+            </Border>
+        </Grid>
+
+        <!-- Footer -->
+        <StackPanel Grid.Row="3"
+                    VerticalAlignment="Bottom"
+                    Spacing="8">
+
+            <TextBlock x:Name="GatewayText"
+                       Text="Gateway: --"
+                       Foreground="#99ABC4"/>
+
+            <TextBlock x:Name="LastUpdateText"
+                       Text="Last update: --"
+                       Foreground="#99ABC4"/>
+
+        </StackPanel>
 
     </Grid>
 </Window>

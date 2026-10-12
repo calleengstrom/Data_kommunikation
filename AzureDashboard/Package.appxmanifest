@@ -35,7 +35,7 @@
       Executable="$targetnametoken$.exe"
       EntryPoint="$targetentrypoint$">
       <uap:VisualElements
-        DisplayName="AzureDashboard"
+        DisplayName="Azure Dashboard"
         Description="AzureDashboard"
         BackgroundColor="transparent"
         Square150x150Logo="Assets\Square150x150Logo.png"
