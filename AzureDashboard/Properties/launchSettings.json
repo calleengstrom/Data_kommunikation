@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "AzureDashboard (Package)": {
+      "commandName": "MsixPackage"
+    },
+    "AzureDashboard (Unpackaged)": {
+      "commandName": "Project"
+    }
+  }
+}
