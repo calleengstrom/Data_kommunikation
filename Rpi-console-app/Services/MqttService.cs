@@ -9,7 +9,7 @@ namespace RpiApp.Services
 {
     public class MqttService(GatewayOptions options, MeasurementCache measurementCache) : IDisposable
     {
-        private const string DataTopic = "climate/data";
+        //
 
 
         private readonly IMqttClient _mqttClient = new MqttClientFactory().CreateMqttClient();
@@ -72,7 +72,7 @@ namespace RpiApp.Services
 
             var subscribeOptions = factory.CreateSubscribeOptionsBuilder()
                 .WithTopicFilter(filter => filter
-                    .WithTopic(DataTopic)
+                    .WithTopic(options.MqttTopic)
                     .WithQualityOfServiceLevel(MqttQualityOfServiceLevel.AtLeastOnce))
                 .Build();
 
@@ -81,7 +81,7 @@ namespace RpiApp.Services
             if (result.Items.Any(item => (int)item.ResultCode >= 128))
                 throw new InvalidOperationException("MQTT subscription was rejected.");
 
-            Console.WriteLine($"Subscribed to {DataTopic}.");
+            Console.WriteLine($"Subscribed to {options.MqttTopic}.");
         }
         private Task HandleMessageAsync(MqttApplicationMessageReceivedEventArgs e)
         {
@@ -95,13 +95,13 @@ namespace RpiApp.Services
                     Console.WriteLine("No data found");
                     return Task.CompletedTask;
                 }
-                Console.WriteLine("Data from MQTT Topic : ");
-                Console.WriteLine(data);
-                foreach(var d in data.Measurements)
-                {
-                    Console.WriteLine($"Measurement type : {d.MeasurementType} Value : {d.Value} Unit : {d.Unit} ");
+                //Console.WriteLine("Data from MQTT Topic : ");
+                //Console.WriteLine(data);
+                //foreach(var d in data.Measurements)
+                //{
+                //    Console.WriteLine($"Measurement type : {d.MeasurementType} Value : {d.Value} Unit : {d.Unit} ");
 
-                }
+                //}
                 measurementCache.UpdateCacheMeasuremnets(data);
 
 

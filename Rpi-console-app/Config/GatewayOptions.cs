@@ -13,7 +13,8 @@ namespace RpiApp.Config
         TimeSpan AzureSendInterval,
 
         string MqttUsername,
-        string MqttPassword
+        string MqttPassword,
+        string MqttTopic
     )
     {}
 }

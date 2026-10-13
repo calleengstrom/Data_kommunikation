@@ -2,7 +2,8 @@
 using RpiApp.Config;
 using RpiApp.Services;
 
-var connectionString = "xxx";
+var connectionString = Environment.GetEnvironmentVariable("AZURE_CONNECTION_STRING");
+    
 
 if (string.IsNullOrWhiteSpace(connectionString))
 {
@@ -12,13 +13,13 @@ if (string.IsNullOrWhiteSpace(connectionString))
 
 var options = new GatewayOptions(
     GatewayName: "crpi",
-    MqttHost: Environment.GetEnvironmentVariable("MQTT_HOST") ?? "192.168.0.240",
+    MqttHost: Environment.GetEnvironmentVariable("MQTT_HOST") ?? "localhost",
     MqttPort: 1883,
     AzureConnectionString: connectionString,
-    AzureSendInterval: TimeSpan.FromSeconds(60),
-    MqttUsername: "main_pc", 
-    MqttPassword: "BytMig123!")
-    ;
+    AzureSendInterval: TimeSpan.FromSeconds(30),
+    MqttUsername: Environment.GetEnvironmentVariable("MQTT_USERNAME") ?? "",
+    MqttPassword: Environment.GetEnvironmentVariable("MQTT_PASSWORD") ?? "",
+    MqttTopic: Environment.GetEnvironmentVariable("MQTT_TOPIC") ?? "");
 
 using var shutdown = new CancellationTokenSource();
 
@@ -34,6 +35,16 @@ using var mqttService = new MqttService(options, measurementCache);
 using var azureService = new AzureIotHubService(options, mqttService, measurementCache);
 
 Console.WriteLine("Starting gateway. Press Ctrl+C to stop.");
+
+//Console.WriteLine($"Gateway name {options.GatewayName}");
+//Console.WriteLine($"mqtt host {options.MqttHost}");
+//Console.WriteLine($"mqtt port {options.MqttPort}");
+//Console.WriteLine($"connecting string {options.AzureConnectionString}");
+//Console.WriteLine($"mqtt username {options.MqttUsername}");
+//Console.WriteLine($"mqtt password {options.MqttPassword}");
+//Console.WriteLine($"mqtt topic {options.MqttTopic}");
+
+
 
 var mqttTask = mqttService.RunAsync(shutdown.Token);
 var azureTask = azureService.RunAsync(shutdown.Token);
