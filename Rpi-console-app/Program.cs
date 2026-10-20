@@ -3,7 +3,7 @@ using RpiApp.Config;
 using RpiApp.Services;
 
 var connectionString = Environment.GetEnvironmentVariable("AZURE_CONNECTION_STRING");
-    
+
 
 if (string.IsNullOrWhiteSpace(connectionString))
 {
@@ -35,14 +35,6 @@ using var mqttService = new MqttService(options, measurementCache);
 using var azureService = new AzureIotHubService(options, mqttService, measurementCache);
 
 Console.WriteLine("Starting gateway. Press Ctrl+C to stop.");
-
-//Console.WriteLine($"Gateway name {options.GatewayName}");
-//Console.WriteLine($"mqtt host {options.MqttHost}");
-//Console.WriteLine($"mqtt port {options.MqttPort}");
-//Console.WriteLine($"connecting string {options.AzureConnectionString}");
-//Console.WriteLine($"mqtt username {options.MqttUsername}");
-//Console.WriteLine($"mqtt password {options.MqttPassword}");
-//Console.WriteLine($"mqtt topic {options.MqttTopic}");
 
 
 

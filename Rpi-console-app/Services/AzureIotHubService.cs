@@ -49,39 +49,39 @@ namespace RpiApp.Services
             var jsonPayload = JsonSerializer.Serialize(payload);
 
             if(jsonPayload.Length > 240 * 1024)
-            {
-                Console.WriteLine("Payload to large");
-                return;
-            }
+                {
+                    Console.WriteLine("Payload to large");
+                    return;
+                }
 
-            using var message = new Message(Encoding.UTF8.GetBytes(jsonPayload))
-            {
-                ContentType = "application/json",
-                ContentEncoding = "utf-8"
-            };
+                using var message = new Message(Encoding.UTF8.GetBytes(jsonPayload))
+                {
+                    ContentType = "application/json",
+                    ContentEncoding = "utf-8"
+                };
 
-            using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
-            timeout.CancelAfter(TimeSpan.FromSeconds(30));
+                using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
+                timeout.CancelAfter(TimeSpan.FromSeconds(30));
 
 
-            try
-            {
+                try
+                {
 
                 await _client.SendEventAsync(message,timeout.Token);
 
-                Console.WriteLine($"Message sent : {message}");
+                    Console.WriteLine($"Message sent : {message}");
 
-            }
-            catch (OperationCanceledException) when (ct.IsCancellationRequested)
-            {
-                throw;
-            }
+                }
+                catch (OperationCanceledException) when (ct.IsCancellationRequested)
+                {
+                    throw;
+                }
 
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error : {ex.Message}");
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error : {ex.Message}");
+                }
             }
-        }
 
 
         public async Task CloseAsync()

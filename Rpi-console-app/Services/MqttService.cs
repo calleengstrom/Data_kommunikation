@@ -95,6 +95,7 @@ namespace RpiApp.Services
                     Console.WriteLine("No data found");
                     return Task.CompletedTask;
                 }
+                data = data with { ReceivedAt = DateTimeOffset.UtcNow };
                 //Console.WriteLine("Data from MQTT Topic : ");
                 //Console.WriteLine(data);
                 //foreach(var d in data.Measurements)
