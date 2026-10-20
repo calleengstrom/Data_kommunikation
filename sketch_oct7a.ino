@@ -529,6 +529,7 @@ String jsonParser(const Payload_t& payload) {
 void setup() {
   Serial.begin(115200);
   delay(2000);
+  activeSettings.loadDeviceSettings();
   BLE_n::BLE_init();
   DHT11_n::initDHT();
   NetWork_n::initWifi();
