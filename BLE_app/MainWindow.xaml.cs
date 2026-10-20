@@ -1,9 +1,13 @@
 
 using ESP32Config;
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 using Windows.UI;
+
 
 namespace BLE_app
 {
@@ -61,6 +65,11 @@ namespace BLE_app
                 {
                     ConnectionStatusText.Text = "Connected";
 
+
+
+
+
+
                     ConnectionIndicator.Fill =
                         new SolidColorBrush(Color.FromArgb(
                             255, 34, 197, 94));
@@ -77,6 +86,7 @@ namespace BLE_app
                         System.Diagnostics.Debug.WriteLine(
                             characteristic.Uuid.ToString());
                     }
+                    await LoadDeviceSettingsAsync();
                 }
                 else
                 {
@@ -87,13 +97,54 @@ namespace BLE_app
             {
                 ShowDisconnected("Connection failed");
 
-                System.Diagnostics.Debug.WriteLine(ex.Message);
+                System.Diagnostics.Debug.WriteLine($"ERROR  :  { ex.Message}");
             }
             finally
             {
                 ConnectButton.IsEnabled = true;
             }
         }
+
+
+        private async Task LoadDeviceSettingsAsync()
+        {
+            string uuidPrefix = "08e4b47a-d691-41ab-b37a-28a37dbe";
+
+            var fields = new Dictionary<int, TextBox>
+    {
+        { 2, DeviceIdTextBox },
+        { 3, WifiSSIDTextBox },
+        { 5, MqttHostTextBox },
+        { 6, LocationTextBox },
+        { 8, MqttUsernameTextBox },
+        { 10, MqttTopicTextBox }
+    };
+
+            foreach (var field in fields)
+            {
+                string uuidString = uuidPrefix + field.Key.ToString("D4");
+                Guid uuid = Guid.Parse(uuidString);
+                System.Diagnostics.Debug.WriteLine($"Reading UUID: {uuid}");
+                string value = await _bleService.ReadCharacteristicAsync(uuid);
+
+                field.Value.Text = value;
+                field.Value.IsEnabled = true;
+            }
+
+            // MQTT-port hanteras separat eftersom den använder NumberBox
+            Guid portUuid = Guid.Parse(uuidPrefix + "0007");
+
+            string portValue = await _bleService.ReadCharacteristicAsync(portUuid);
+
+            if (double.TryParse(portValue, out double port))
+            {
+                MqttPortNumberBox.Value = port;
+            }
+
+            MqttPortNumberBox.IsEnabled = true;
+        }
+
+
 
         private void ShowDisconnected(string message)
         {

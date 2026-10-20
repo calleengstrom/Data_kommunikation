@@ -160,10 +160,51 @@ namespace ESP32Config
             _device = null;
         }
 
+        public async Task<string> ReadCharacteristicAsync(Guid uuid)
+        {
+            if (_gattService == null)
+                throw new InvalidOperationException("Not connected to ESP32.");
+
+            // Hitta rätt characteristic med UUID
+            var result = await _gattService.GetCharacteristicsForUuidAsync(
+                uuid,
+                BluetoothCacheMode.Uncached
+            );
+
+            if (result.Status != GattCommunicationStatus.Success ||
+                result.Characteristics.Count == 0)
+            {
+                throw new Exception("Characteristic not found.");
+            }
+
+            // Läs värdet från ESP32
+            var characteristic = result.Characteristics[0];
+
+            var readResult = await characteristic.ReadValueAsync(
+                BluetoothCacheMode.Uncached
+            );
+
+            if (readResult.Status != GattCommunicationStatus.Success)
+                throw new Exception("Failed to read characteristic.");
+
+            // Konvertera mottagna bytes till String
+            var reader = Windows.Storage.Streams.DataReader.FromBuffer(
+                readResult.Value
+            );
+
+            byte[] bytes = new byte[reader.UnconsumedBufferLength];
+            reader.ReadBytes(bytes);
+
+            return System.Text.Encoding.UTF8.GetString(bytes);
+        }
+
+
         public void Dispose()
         {
             StopScan();
             Disconnect();
         }
     }
+
+
 }
