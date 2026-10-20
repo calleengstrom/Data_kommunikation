@@ -221,6 +221,8 @@ public:
       // Med nuvarande void-metod kan vi inte
       // bekräfta att varje skrivning lyckades.
       setStatus("SAVE_REQUESTED");
+
+      
     }
 
     else if (command == "CANCEL") {
@@ -234,111 +236,104 @@ public:
   }
 };
 
-// Skapar en characteristic för ett String-fält
-BLECharacteristic* addStringCharacteristic(
-  BLEService* service,
-  const char* uuid,
-  String DeviceSettings::*field,
-  bool readable = true) {
+  // Skapar en characteristic för ett String-fält
+  BLECharacteristic* addStringCharacteristic(
+    BLEService* service,
+    const char* uuid,
+    String DeviceSettings::*field,
+    bool readable = true) {
 
-  uint32_t properties = BLECharacteristic::PROPERTY_WRITE;
+    uint32_t properties = BLECharacteristic::PROPERTY_WRITE;
 
-  if (readable) {
-    properties |= BLECharacteristic::PROPERTY_READ;
+    if (readable) {
+      properties |= BLECharacteristic::PROPERTY_READ;
+    }
+
+    BLECharacteristic* characteristic =
+      service->createCharacteristic(uuid, properties);
+
+    characteristic->setCallbacks(
+      new StringCallbacks(field, readable));
+
+    return characteristic;
   }
 
-  BLECharacteristic* characteristic =
-    service->createCharacteristic(uuid, properties);
+  // Initiera BLE
+  void BLE_init() {
 
-  characteristic->setCallbacks(
-    new StringCallbacks(field, readable));
+    pendingSettings = activeSettings;
 
-  return characteristic;
+    BLEDevice::init("ESP32-Config");
+
+    BLEServer* server = BLEDevice::createServer();
+    BLEService* service = server->createService(BLEUUID(String(SERVICE_UUID)), 40);
+
+    // Device
+    addStringCharacteristic(
+      service, DEVICE_ID_UUID, &DeviceSettings::deviceId);
+
+    addStringCharacteristic(
+      service, LOCATION_UUID, &DeviceSettings::location);
+
+    // Wi-Fi
+    addStringCharacteristic(
+      service, WIFI_SSID_UUID, &DeviceSettings::wifiSSID);
+
+    addStringCharacteristic(
+      service, WIFI_PASSWORD_UUID,
+      &DeviceSettings::wifiPassword, false);
+
+    // MQTT
+    addStringCharacteristic(
+      service, MQTT_HOST_UUID, &DeviceSettings::mqttHost);
+
+    addStringCharacteristic(
+      service, MQTT_USERNAME_UUID, &DeviceSettings::mqttUsername);
+
+    addStringCharacteristic(
+      service, MQTT_PASSWORD_UUID,
+      &DeviceSettings::mqttPassword, false);
+
+    addStringCharacteristic(
+      service, MQTT_TOPIC_UUID, &DeviceSettings::mqttTopic);
+
+    // MQTT Port
+    BLECharacteristic* portChars = service->createCharacteristic(
+      MQTT_PORT_UUID,
+      BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_WRITE);
+
+    portChars->setCallbacks(new PortCallbacks());
+
+    // SAVE / CANCEL
+    BLECharacteristic* commandChars = service->createCharacteristic(
+      COMMAND_UUID,
+      BLECharacteristic::PROPERTY_WRITE);
+
+    commandChars->setCallbacks(new CommandCallbacks());
+
+    // Status
+    statusChars = service->createCharacteristic(
+      STATUS_UUID,
+      BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_NOTIFY);
+
+    statusChars->addDescriptor(new BLE2902());
+    statusChars->setValue("READY");
+
+    // Starta service
+    service->start();
+
+    // Advertising
+    BLEAdvertising* advertising = BLEDevice::getAdvertising();
+    advertising->addServiceUUID(SERVICE_UUID);
+    advertising->setScanResponse(true);
+
+    BLEDevice::startAdvertising();
+
+    Serial.println("BLE configuration server started.");
+    Serial.println("Waiting for BLE client...");
+  }
 }
 
-// Initiera BLE
-void BLE_init() {
-
-  pendingSettings = activeSettings;
-
-  BLEDevice::init("ESP32-Config");
-
-  BLEServer* server = BLEDevice::createServer();
-  BLEService* service = server->createService(BLEUUID(String(SERVICE_UUID)), 40);
-
-  // Device
-  addStringCharacteristic(
-    service, DEVICE_ID_UUID, &DeviceSettings::deviceId);
-
-  addStringCharacteristic(
-    service, LOCATION_UUID, &DeviceSettings::location);
-
-  // Wi-Fi
-  addStringCharacteristic(
-    service, WIFI_SSID_UUID, &DeviceSettings::wifiSSID);
-
-  addStringCharacteristic(
-    service, WIFI_PASSWORD_UUID,
-    &DeviceSettings::wifiPassword, false);
-
-  // MQTT
-  addStringCharacteristic(
-    service, MQTT_HOST_UUID, &DeviceSettings::mqttHost);
-
-  addStringCharacteristic(
-    service, MQTT_USERNAME_UUID, &DeviceSettings::mqttUsername);
-
-  addStringCharacteristic(
-    service, MQTT_PASSWORD_UUID,
-    &DeviceSettings::mqttPassword, false);
-
-  addStringCharacteristic(
-    service, MQTT_TOPIC_UUID, &DeviceSettings::mqttTopic);
-
-  // MQTT Port
-  BLECharacteristic* portChars = service->createCharacteristic(
-    MQTT_PORT_UUID,
-    BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_WRITE);
-
-  portChars->setCallbacks(new PortCallbacks());
-
-  // SAVE / CANCEL
-  BLECharacteristic* commandChars = service->createCharacteristic(
-    COMMAND_UUID,
-    BLECharacteristic::PROPERTY_WRITE);
-
-  commandChars->setCallbacks(new CommandCallbacks());
-
-  // Status
-  statusChars = service->createCharacteristic(
-    STATUS_UUID,
-    BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_NOTIFY);
-
-  statusChars->addDescriptor(new BLE2902());
-  statusChars->setValue("READY");
-
-  // Starta service
-  service->start();
-
-  // Advertising
-  BLEAdvertising* advertising = BLEDevice::getAdvertising();
-  advertising->addServiceUUID(SERVICE_UUID);
-  advertising->setScanResponse(true);
-
-  BLEDevice::startAdvertising();
-
-  Serial.println("BLE configuration server started.");
-  Serial.println("Waiting for BLE client...");
-}
-}
-
-
-namespace Device_n {
-// 04:B2:47:97:CB:64
-// 04:B2:47:97:C5:48
-constexpr char deviceId[] = "esp_temp_04:B2:47:97:C5:48";
-constexpr char location[] = "Office";
-}
 
 
 class Measurement_t {
@@ -400,16 +395,14 @@ public:
 
 
 namespace NetWork_n {
-constexpr char WIFI_SSID[] = "Calle & Stina";
-constexpr char WIFI_PASS[] = "yoyo3535";
 bool wasConnected = false;
 void initWifi() {
 
   WiFi.mode(WIFI_STA);
   WiFi.setAutoReconnect(true);
-  WiFi.begin(WIFI_SSID, WIFI_PASS);
+  WiFi.begin(activeSettings.wifiSSID.c_str(), activeSettings.wifiPassword.c_str());
   Serial.print("Connecting to ");
-  Serial.println(WIFI_SSID);
+  Serial.println(activeSettings.wifiSSID);
   while (WiFi.status() != WL_CONNECTED) {
     Serial.print(".");
     delay(500);
@@ -464,17 +457,13 @@ namespace Mqtt_n {
 
 unsigned long lastPubTime = 0;
 constexpr unsigned long PUB_INTERVAL = 5000;
-constexpr char MQTT_HOST[] = "192.168.0.240";
-constexpr uint16_t MQTT_PORT = 1883;
-constexpr char MQTT_USERNAME[] = "esp_temp_001";
-constexpr char MQTT_PASSWORD[] = "BytMig123!";
-constexpr char MQTT_TOPIC[] = "climate/data";
+
 
 ESP32MQTTClient mqttClient;
 
 void initMqtt() {
-  mqttClient.setURL(MQTT_HOST, MQTT_PORT, MQTT_USERNAME, MQTT_PASSWORD);
-  mqttClient.setMqttClientName(MQTT_USERNAME);
+  mqttClient.setURL(activeSettings.mqttHost.c_str(), activeSettings.mqttPort, activeSettings.mqttUsername.c_str(), activeSettings.mqttPassword.c_str());
+  mqttClient.setMqttClientName(activeSettings.mqttUsername.c_str());
   mqttClient.loopStart();
 }
 
@@ -491,7 +480,7 @@ void mqttPub(String payload) {
 
   lastPubTime = currentTime;
 
-  mqttClient.publish(MQTT_TOPIC, payload.c_str(), 0, false);
+  mqttClient.publish(activeSettings.mqttTopic.c_str(), payload.c_str(), 0, false);
 }
 
 };
@@ -562,11 +551,17 @@ void loop() {
   Measurement_t humidity("Humidity", DHT11_n::getHumidityValue(), DHT11_n::getHumidityUnit());
   if (temperature.isValid() && humidity.isValid()) {
     Measurement_t measurements[] = { temperature, humidity };
-    Payload_t payload(Device_n::deviceId, measurements, Device_n::location);
+    Payload_t payload(activeSettings.deviceId, measurements, activeSettings.location);
     String jsonPayload = jsonParser(payload);
     Mqtt_n::mqttPub(jsonPayload);
   }
 
+  if(BLE_n::settingsChanged)
+  {
+    Serial.println("New settings -> Restarting");
+    delay(1500);
+    ESP.restart();
+  }
 
   delay(5000);
 }
