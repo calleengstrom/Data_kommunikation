@@ -1,12 +1,322 @@
+
+
+
 #include <Arduino.h>
 #include <WiFi.h>
 #include <DHT.h>
 #include <ESP32MQTTClient.h>
 #include <math.h>
 #include <esp_idf_version.h>
+#include <Preferences.h>
+#include <BLEDevice.h>
+#include <BLEServer.h>
+#include <BLEUtils.h>
+#include <BLE2902.h>
+
+
+
+class DeviceSettings {
+
+public:
+  String wifiSSID;
+  String wifiPassword;
+
+  String deviceId;
+  String location;
+
+  String mqttHost;
+  uint16_t mqttPort = 1883;
+  String mqttUsername;
+  String mqttPassword;
+  String mqttTopic;
+
+  void loadDeviceSettings() {
+    Preferences preferences;
+    preferences.begin("device-config", true);
+
+    wifiSSID = preferences.getString("wifiSSID", "");
+    wifiPassword = preferences.getString("wifiPassword", "");
+
+    deviceId = preferences.getString("deviceId", "esp_temp_" + WiFi.macAddress());
+    location = preferences.getString("location", "");
+
+    mqttHost = preferences.getString("mqttHost", "");
+    mqttPort = preferences.getUShort("mqttPort", 1883);
+    mqttUsername = preferences.getString("mqttUsername", "");
+    mqttPassword = preferences.getString("mqttPassword", "");
+    mqttTopic = preferences.getString("mqttTopic", "");
+
+    preferences.end();
+  }
+
+  void saveDeviceSettings() {
+    Preferences preferences;
+    preferences.begin("device-config", false);
+
+    preferences.putString("wifiSSID", wifiSSID);
+    preferences.putString("wifiPassword", wifiPassword);
+
+    preferences.putString("deviceId", deviceId);
+    preferences.putString("location", location);
+
+    preferences.putString("mqttHost", mqttHost);
+    preferences.putUShort("mqttPort", mqttPort);
+    preferences.putString("mqttUsername", mqttUsername);
+    preferences.putString("mqttPassword", mqttPassword);
+    preferences.putString("mqttTopic", mqttTopic);
+
+    preferences.end();
+  }
+
+  bool saveIsValid() const {
+    return !wifiSSID.isEmpty()
+           && !deviceId.isEmpty()
+           && !mqttHost.isEmpty()
+           && mqttPort > 0
+           && !mqttTopic.isEmpty();
+  }
+};
+
+
+
+#include <BLEDevice.h>
+#include <BLEServer.h>
+#include <BLEUtils.h>
+#include <BLE2902.h>
+
+
+DeviceSettings activeSettings;
+DeviceSettings pendingSettings;
+
+namespace BLE_n {
+
+constexpr char SERVICE_UUID[] = "08e4b47a-d691-41ab-b37a-28a37dbe0001";
+
+constexpr char DEVICE_ID_UUID[] = "08e4b47a-d691-41ab-b37a-28a37dbe0002";
+constexpr char WIFI_SSID_UUID[] = "08e4b47a-d691-41ab-b37a-28a37dbe0003";
+constexpr char WIFI_PASSWORD_UUID[] = "08e4b47a-d691-41ab-b37a-28a37dbe0004";
+constexpr char MQTT_HOST_UUID[] = "08e4b47a-d691-41ab-b37a-28a37dbe0005";
+constexpr char LOCATION_UUID[] = "08e4b47a-d691-41ab-b37a-28a37dbe0006";
+constexpr char MQTT_PORT_UUID[] = "08e4b47a-d691-41ab-b37a-28a37dbe0007";
+constexpr char MQTT_USERNAME_UUID[] = "08e4b47a-d691-41ab-b37a-28a37dbe0008";
+constexpr char MQTT_PASSWORD_UUID[] = "08e4b47a-d691-41ab-b37a-28a37dbe0009";
+constexpr char MQTT_TOPIC_UUID[] = "08e4b47a-d691-41ab-b37a-28a37dbe000a";
+constexpr char COMMAND_UUID[] = "08e4b47a-d691-41ab-b37a-28a37dbe000b";
+constexpr char STATUS_UUID[] = "08e4b47a-d691-41ab-b37a-28a37dbe000c";
+
+BLECharacteristic* statusChars = nullptr;
+
+bool settingsChanged = false;
+
+void setStatus(const String& status) {
+  if (statusChars != nullptr) {
+    statusChars->setValue(status.c_str());
+    statusChars->notify();
+  }
+  Serial.println("BLE Status: " + status);
+}
+
+// Gemensam callback för alla String-inställningar
+class StringCallbacks : public BLECharacteristicCallbacks {
+private:
+  String DeviceSettings::*field;
+  bool readable;
+
+public:
+  StringCallbacks(String DeviceSettings::*member, bool allowRead = true)
+    : field(member), readable(allowRead) {}
+
+  void onRead(BLECharacteristic* characteristic) override {
+    if (readable) {
+      characteristic->setValue((activeSettings.*field).c_str());
+    }
+  }
+
+  void onWrite(BLECharacteristic* characteristic) override {
+    String value = String(characteristic->getValue().c_str());
+
+    // Uppdatera bara det aktuella fältet i RAM
+    pendingSettings.*field = value;
+
+    Serial.println("BLE: Setting updated in RAM");
+  }
+};
+
+// MQTT-porten är uint16_t, inte String
+class PortCallbacks : public BLECharacteristicCallbacks {
+public:
+  void onRead(BLECharacteristic* characteristic) override {
+    characteristic->setValue(
+      String(activeSettings.mqttPort).c_str());
+  }
+
+  void onWrite(BLECharacteristic* characteristic) override {
+    String value = String(characteristic->getValue().c_str());
+
+    // Acceptera bara numeriska portnummer 1-65535
+    if (value.isEmpty()) {
+      setStatus("INVALID_PORT");
+      return;
+    }
+
+    for (unsigned int i = 0; i < value.length(); i++) {
+      if (!isDigit(value[i])) {
+        setStatus("INVALID_PORT");
+        return;
+      }
+    }
+
+    unsigned long port = value.toInt();
+
+    if (port == 0 || port > 65535) {
+      setStatus("INVALID_PORT");
+      return;
+    }
+
+    pendingSettings.mqttPort = static_cast<uint16_t>(port);
+  }
+};
+
+// Hanterar SAVE och CANCEL
+class CommandCallbacks : public BLECharacteristicCallbacks {
+public:
+  void onWrite(BLECharacteristic* characteristic) override {
+    String command = String(characteristic->getValue().c_str());
+    command.trim();
+
+    if (command == "SAVE") {
+
+      if (!pendingSettings.saveIsValid()) {
+        setStatus("INVALID_SETTINGS");
+        return;
+      }
+
+      // Spara i Preferences
+      pendingSettings.saveDeviceSettings();
+
+      // Aktivera den nya konfigurationen i RAM
+      activeSettings = pendingSettings;
+
+      settingsChanged = true;
+
+      // Med nuvarande void-metod kan vi inte
+      // bekräfta att varje skrivning lyckades.
+      setStatus("SAVE_REQUESTED");
+    }
+
+    else if (command == "CANCEL") {
+      pendingSettings = activeSettings;
+      setStatus("CANCELLED");
+    }
+
+    else {
+      setStatus("UNKNOWN_COMMAND");
+    }
+  }
+};
+
+// Skapar en characteristic för ett String-fält
+BLECharacteristic* addStringCharacteristic(
+  BLEService* service,
+  const char* uuid,
+  String DeviceSettings::*field,
+  bool readable = true) {
+
+  uint32_t properties = BLECharacteristic::PROPERTY_WRITE;
+
+  if (readable) {
+    properties |= BLECharacteristic::PROPERTY_READ;
+  }
+
+  BLECharacteristic* characteristic =
+    service->createCharacteristic(uuid, properties);
+
+  characteristic->setCallbacks(
+    new StringCallbacks(field, readable));
+
+  return characteristic;
+}
+
+// Initiera BLE
+void BLE_init() {
+
+  pendingSettings = activeSettings;
+
+  BLEDevice::init("ESP32-Config");
+
+  BLEServer* server = BLEDevice::createServer();
+  BLEService* service = server->createService(SERVICE_UUID);
+
+  // Device
+  addStringCharacteristic(
+    service, DEVICE_ID_UUID, &DeviceSettings::deviceId);
+
+  addStringCharacteristic(
+    service, LOCATION_UUID, &DeviceSettings::location);
+
+  // Wi-Fi
+  addStringCharacteristic(
+    service, WIFI_SSID_UUID, &DeviceSettings::wifiSSID);
+
+  addStringCharacteristic(
+    service, WIFI_PASSWORD_UUID,
+    &DeviceSettings::wifiPassword, false);
+
+  // MQTT
+  addStringCharacteristic(
+    service, MQTT_HOST_UUID, &DeviceSettings::mqttHost);
+
+  addStringCharacteristic(
+    service, MQTT_USERNAME_UUID, &DeviceSettings::mqttUsername);
+
+  addStringCharacteristic(
+    service, MQTT_PASSWORD_UUID,
+    &DeviceSettings::mqttPassword, false);
+
+  addStringCharacteristic(
+    service, MQTT_TOPIC_UUID, &DeviceSettings::mqttTopic);
+
+  // MQTT Port
+  BLECharacteristic* portChars = service->createCharacteristic(
+    MQTT_PORT_UUID,
+    BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_WRITE);
+
+  portChars->setCallbacks(new PortCallbacks());
+
+  // SAVE / CANCEL
+  BLECharacteristic* commandChars = service->createCharacteristic(
+    COMMAND_UUID,
+    BLECharacteristic::PROPERTY_WRITE);
+
+  commandChars->setCallbacks(new CommandCallbacks());
+
+  // Status
+  statusChars = service->createCharacteristic(
+    STATUS_UUID,
+    BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_NOTIFY);
+
+  statusChars->addDescriptor(new BLE2902());
+  statusChars->setValue("READY");
+
+  // Starta service
+  service->start();
+
+  // Advertising
+  BLEAdvertising* advertising = BLEDevice::getAdvertising();
+  advertising->addServiceUUID(SERVICE_UUID);
+  advertising->setScanResponse(true);
+
+  BLEDevice::startAdvertising();
+
+  Serial.println("BLE configuration server started.");
+  Serial.println("Waiting for BLE client...");
+}
+}
 
 
 namespace Device_n {
+// 04:B2:47:97:CB:64
+// 04:B2:47:97:C5:48
 constexpr char deviceId[] = "esp_temp_04:B2:47:97:C5:48";
 constexpr char location[] = "Office";
 }
@@ -71,8 +381,8 @@ public:
 
 
 namespace NetWork_n {
-constexpr char WIFI_SSID[] = "xxxx";
-constexpr char WIFI_PASS[] = "xxxx";
+constexpr char WIFI_SSID[] = "Calle & Stina";
+constexpr char WIFI_PASS[] = "yoyo3535";
 bool wasConnected = false;
 void initWifi() {
 
@@ -139,7 +449,7 @@ constexpr char MQTT_HOST[] = "192.168.0.240";
 constexpr uint16_t MQTT_PORT = 1883;
 constexpr char MQTT_USERNAME[] = "esp_temp_001";
 constexpr char MQTT_PASSWORD[] = "BytMig123!";
-constexpr char MQTT_TOPIC[] = "/temp/1";
+constexpr char MQTT_TOPIC[] = "climate/data";
 
 ESP32MQTTClient mqttClient;
 
@@ -219,6 +529,7 @@ String jsonParser(const Payload_t& payload) {
 void setup() {
   Serial.begin(115200);
   delay(2000);
+  BLE_n::BLE_init();
   DHT11_n::initDHT();
   NetWork_n::initWifi();
   Mqtt_n::initMqtt();
