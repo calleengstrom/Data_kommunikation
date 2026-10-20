@@ -73,7 +73,7 @@ namespace ESP32Config
             string name = args.Advertisement.LocalName;
 
             if (string.IsNullOrEmpty(name) ||
-                !name.StartsWith("ESP32-Config",
+                !name.StartsWith("ESP32",
             StringComparison.OrdinalIgnoreCase))
             {
                 return;
