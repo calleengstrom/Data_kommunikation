@@ -43,7 +43,10 @@ namespace BLE_app
         {
             InitializeComponent();
 
+
             _bleService.DeviceFound += OnDeviceFound;
+
+            _bleService.Disconnected += BleService_Disconnected;
 
             ScanButton.Click += ScanButton_Click;
             ConnectButton.Click += ConnectButton_Click;
@@ -259,9 +262,10 @@ namespace BLE_app
                     throw new Exception($"ESP32 {status}");
                 }
 
-                await LoadDeviceSettingsAsync();
+                
+                SaveStatusText.Text = "Settings saved. ESP32 restarting...";
 
-                SaveStatusText.Text = "Save requested";
+                await _bleService.DisconnectAsync();
 
             }
             catch (Exception ex)
@@ -299,8 +303,24 @@ namespace BLE_app
                 UpdateChanges(); 
             }
         }
-        
-        
+
+
+
+        private void BleService_Disconnected()
+        {
+            DispatcherQueue.TryEnqueue(() =>
+            {
+                _connected = false;
+
+                ShowDisconnected("Disconnected");
+
+                SaveButton.IsEnabled = false;
+                CancelButton.IsEnabled = false;
+            });
+        }
+
+
+
         private void ShowDisconnected(string message)
         {
             ConnectionStatusText.Text = message;

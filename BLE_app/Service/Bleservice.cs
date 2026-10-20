@@ -130,6 +130,10 @@ namespace ESP32Config
 
             _gattService = result.Services[0];
 
+
+            _device.ConnectionStatusChanged += Device_ConnectionStatusChanged;
+
+
             return true;
         }
 
@@ -151,14 +155,30 @@ namespace ESP32Config
             return result.Characteristics;
         }
 
+
         public void Disconnect()
         {
+            if (_device != null)
+            {
+                _device.ConnectionStatusChanged -= Device_ConnectionStatusChanged;
+            }
+
             _gattService?.Dispose();
             _gattService = null;
 
             _device?.Dispose();
             _device = null;
+
+            Disconnected?.Invoke();
         }
+
+        public Task DisconnectAsync()
+        {
+            Disconnect();
+            return Task.CompletedTask;
+        }
+
+
 
         public async Task<string> ReadCharacteristicAsync(Guid uuid)
         {
@@ -222,6 +242,18 @@ namespace ESP32Config
 
             if (status != GattCommunicationStatus.Success)
                 throw new Exception($"BLE write failed: {uuid}");
+        }
+
+        public event Action? Disconnected;
+
+        private void Device_ConnectionStatusChanged(
+        BluetoothLEDevice sender,
+        object args)
+        {
+            if (sender.ConnectionStatus == BluetoothConnectionStatus.Disconnected)
+            {
+                Disconnected?.Invoke();
+            }
         }
 
 
