@@ -22,7 +22,6 @@ namespace ESP32Config
 
     public class BleService : IDisposable
     {
-
         public string? UuidPrefix { get; private set; }
 
         public Guid GetCharacteristicUuid(int number)
