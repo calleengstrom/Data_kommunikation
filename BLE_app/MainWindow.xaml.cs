@@ -17,15 +17,16 @@ namespace BLE_app
     {
         private readonly BleService _bleService = new();
 
-        private const string uuidPrefix = "08e4b47a-d691-41ab-b37a-28a37dbe";
-
+       
         private readonly Dictionary<int, string> _savedValues = new();
 
         private bool _loading = false;
         private bool _connected = false;
 
+
         private Guid GetUuid(int num) =>
-            Guid.Parse(uuidPrefix + num.ToString("D4"));
+            _bleService.GetCharacteristicUuid(num);
+
 
 
         private Dictionary<int, TextBox> GetTextFields() => new()
@@ -106,7 +107,7 @@ namespace BLE_app
 
                 bool connected =
                     await _bleService.ConnectAsync(device.Address);
-
+                ConnectionStatusText.Text = "Connecting...";
 
                 if (!connected)
                 {

@@ -1,6 +1,7 @@
 ﻿
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Windows.Devices.Bluetooth;
 using Windows.Devices.Bluetooth.Advertisement;
@@ -21,8 +22,17 @@ namespace ESP32Config
 
     public class BleService : IDisposable
     {
-        private static readonly Guid ServiceUuid =
-            Guid.Parse("08e4b47a-d691-41ab-b37a-28a37dbe0001");
+
+        public string? UuidPrefix { get; private set; }
+
+        public Guid GetCharacteristicUuid(int number)
+        {
+            if (UuidPrefix == null)
+                throw new InvalidOperationException("No BLE service discovered.");
+
+            return Guid.Parse(UuidPrefix + number.ToString("D4"));
+        }
+
 
         private BluetoothLEAdvertisementWatcher? _watcher;
         private BluetoothLEDevice? _device;
@@ -62,13 +72,12 @@ namespace ESP32Config
         {
             string name = args.Advertisement.LocalName;
 
-            bool isOurDevice =
-                name.StartsWith("ESP32-Config",
-                    StringComparison.OrdinalIgnoreCase)
-                || args.Advertisement.ServiceUuids.Contains(ServiceUuid);
-
-            if (!isOurDevice)
+            if (string.IsNullOrEmpty(name) ||
+                !name.StartsWith("ESP32-Config",
+            StringComparison.OrdinalIgnoreCase))
+            {
                 return;
+            }
 
             bool isNew;
 
@@ -83,9 +92,7 @@ namespace ESP32Config
             DeviceFound?.Invoke(new BleDeviceInfo
             {
                 Address = args.BluetoothAddress,
-                Name = string.IsNullOrWhiteSpace(name)
-                    ? "ESP32-Config"
-                    : name
+                Name = name
             });
         }
 
@@ -105,10 +112,13 @@ namespace ESP32Config
             _watcher = null;
         }
 
+
         public async Task<bool> ConnectAsync(ulong address)
         {
-            Disconnect();
+            CleanupConnection();
             StopScan();
+
+            UuidPrefix = null;
 
             _device = await BluetoothLEDevice
                 .FromBluetoothAddressAsync(address);
@@ -116,26 +126,74 @@ namespace ESP32Config
             if (_device == null)
                 return false;
 
-            var result = await _device.GetGattServicesForUuidAsync(
-                ServiceUuid,
-                BluetoothCacheMode.Uncached
-            );
+            var result = await _device.GetGattServicesAsync(
+                BluetoothCacheMode.Uncached);
 
-            if (result.Status != GattCommunicationStatus.Success ||
-                result.Services.Count == 0)
+            if (result.Status != GattCommunicationStatus.Success)
             {
+                System.Diagnostics.Debug.WriteLine(
+                    $"GATT discovery failed: {result.Status}");
+
                 Disconnect();
                 return false;
             }
 
-            _gattService = result.Services[0];
+            foreach (var service in result.Services)
+            {
+                string serviceUuid = service.Uuid.ToString("D");
 
+                // Konfigurationstjänsten ska sluta på 0001
+                if (!serviceUuid.EndsWith("0001"))
+                    continue;
 
-            _device.ConnectionStatusChanged += Device_ConnectionStatusChanged;
+                string prefix = serviceUuid[..^4];
 
+                var chars = await service.GetCharacteristicsAsync(
+                    BluetoothCacheMode.Uncached);
 
-            return true;
+                if (chars.Status != GattCommunicationStatus.Success)
+                    continue;
+
+                var uuids = chars.Characteristics
+                    .Select(c => c.Uuid)
+                    .ToHashSet();
+
+                // Kontrollera att tjänsten har våra characteristics
+                int[] required = { 2, 3, 5, 6, 7, 8, 10, 11, 12 };
+
+                bool isValid = required.All(number =>
+                    uuids.Contains(Guid.Parse(
+                        prefix + number.ToString("D4"))));
+
+                if (!isValid)
+                    continue;
+
+                // Vi har hittat rätt tjänst!
+                _gattService = service;
+                UuidPrefix = prefix;
+
+                _device.ConnectionStatusChanged +=
+                    Device_ConnectionStatusChanged;
+
+                System.Diagnostics.Debug.WriteLine(
+                    $"Connected to ESP32 with UUID prefix: {UuidPrefix}");
+
+                foreach (var other in result.Services)
+                {
+                    if (!ReferenceEquals(other, _gattService))
+                        other.Dispose();
+                }
+
+                return true;
+            }
+
+            foreach (var service in result.Services)
+                service.Dispose();
+
+            Disconnect();
+            return false;
         }
+
 
         public async Task<IReadOnlyList<GattCharacteristic>>
             GetCharacteristicsAsync()
@@ -156,7 +214,31 @@ namespace ESP32Config
         }
 
 
+
+
         public void Disconnect()
+        {
+            bool wasConnected =
+                _device != null || _gattService != null;
+
+            CleanupConnection();
+
+            if (wasConnected)
+            {
+                Disconnected?.Invoke();
+            }
+        }
+
+
+
+        public Task DisconnectAsync()
+        {
+            Disconnect();
+            return Task.CompletedTask;
+        }
+
+
+        private void CleanupConnection()
         {
             if (_device != null)
             {
@@ -169,15 +251,8 @@ namespace ESP32Config
             _device?.Dispose();
             _device = null;
 
-            Disconnected?.Invoke();
+            UuidPrefix = null;
         }
-
-        public Task DisconnectAsync()
-        {
-            Disconnect();
-            return Task.CompletedTask;
-        }
-
 
 
         public async Task<string> ReadCharacteristicAsync(Guid uuid)
