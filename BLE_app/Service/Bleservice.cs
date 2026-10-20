@@ -199,6 +199,32 @@ namespace ESP32Config
         }
 
 
+        public async Task WriteCharacteristicAsync(Guid uuid, string value)
+        {
+            if (_gattService == null)
+                throw new InvalidOperationException("Not connected to ESP32.");
+
+            var result = await _gattService.GetCharacteristicsForUuidAsync(
+                uuid, BluetoothCacheMode.Uncached);
+
+            if (result.Status != GattCommunicationStatus.Success ||
+                result.Characteristics.Count == 0)
+                throw new Exception($"Characteristic not found: {uuid}");
+
+            var characteristic = result.Characteristics[0];
+
+            var writer = new Windows.Storage.Streams.DataWriter();
+            writer.WriteBytes(System.Text.Encoding.UTF8.GetBytes(value));
+
+            var status = await characteristic.WriteValueAsync(
+                writer.DetachBuffer(),
+                GattWriteOption.WriteWithResponse);
+
+            if (status != GattCommunicationStatus.Success)
+                throw new Exception($"BLE write failed: {uuid}");
+        }
+
+
         public void Dispose()
         {
             StopScan();
