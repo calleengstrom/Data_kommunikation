@@ -68,6 +68,25 @@ public:
     preferences.end();
   }
 
+
+  void printDeviceSettings() const {
+    Serial.println("\n========== DEVICE SETTINGS ==========");
+
+    Serial.println("WiFi SSID     : " + wifiSSID);
+    Serial.println("WiFi Password : [HIDDEN]");
+
+    Serial.println("Device ID     : " + deviceId);
+    Serial.println("Location      : " + location);
+
+    Serial.println("MQTT Host     : " + mqttHost);
+    Serial.println("MQTT Port     : " + String(mqttPort));
+    Serial.println("MQTT Username : " + mqttUsername);
+    Serial.println("MQTT Password : [HIDDEN]");
+    Serial.println("MQTT Topic    : " + mqttTopic);
+
+    Serial.println("=====================================\n");
+}
+
   bool saveIsValid() const {
     return !wifiSSID.isEmpty()
            && !deviceId.isEmpty()
@@ -100,9 +119,9 @@ constexpr char LOCATION_UUID[] = "08e4b47a-d691-41ab-b37a-28a37dbe0006";
 constexpr char MQTT_PORT_UUID[] = "08e4b47a-d691-41ab-b37a-28a37dbe0007";
 constexpr char MQTT_USERNAME_UUID[] = "08e4b47a-d691-41ab-b37a-28a37dbe0008";
 constexpr char MQTT_PASSWORD_UUID[] = "08e4b47a-d691-41ab-b37a-28a37dbe0009";
-constexpr char MQTT_TOPIC_UUID[] = "08e4b47a-d691-41ab-b37a-28a37dbe000a";
-constexpr char COMMAND_UUID[] = "08e4b47a-d691-41ab-b37a-28a37dbe000b";
-constexpr char STATUS_UUID[] = "08e4b47a-d691-41ab-b37a-28a37dbe000c";
+constexpr char MQTT_TOPIC_UUID[] = "08e4b47a-d691-41ab-b37a-28a37dbe0010";
+constexpr char COMMAND_UUID[] = "08e4b47a-d691-41ab-b37a-28a37dbe0011";
+constexpr char STATUS_UUID[] = "08e4b47a-d691-41ab-b37a-28a37dbe0012";
 
 BLECharacteristic* statusChars = nullptr;
 
@@ -245,7 +264,7 @@ void BLE_init() {
   BLEDevice::init("ESP32-Config");
 
   BLEServer* server = BLEDevice::createServer();
-  BLEService* service = server->createService(SERVICE_UUID);
+  BLEService* service = server->createService(BLEUUID(String(SERVICE_UUID)), 40);
 
   // Device
   addStringCharacteristic(
@@ -534,6 +553,7 @@ void setup() {
   DHT11_n::initDHT();
   NetWork_n::initWifi();
   Mqtt_n::initMqtt();
+  activeSettings.printDeviceSettings();
 }
 
 void loop() {
