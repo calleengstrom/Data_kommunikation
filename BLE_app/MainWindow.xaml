@@ -124,7 +124,7 @@
 
                     <TextBox x:Name="DeviceIdTextBox"
                              Header="Device ID"
-                             PlaceholderText="esp_temp_..."
+                             PlaceholderText="name.."
                              IsEnabled="False"/>
 
                     <TextBox x:Name="LocationTextBox"
