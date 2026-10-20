@@ -129,7 +129,7 @@
 
                     <TextBox x:Name="LocationTextBox"
                              Header="Location"
-                             PlaceholderText="Office / Livingroom"
+                             PlaceholderText="e.g : Livingroom"
                              IsEnabled="False"/>
 
                 </StackPanel>
@@ -185,7 +185,7 @@
 
                         <TextBox x:Name="MqttHostTextBox"
                                  Header="Broker Address"
-                                 PlaceholderText="192.168.0.240"
+                                 PlaceholderText="192.100.0.100"
                                  Grid.Column="0"
                                  IsEnabled="False"/>
 
@@ -202,7 +202,7 @@
 
                     <TextBox x:Name="MqttTopicTextBox"
                              Header="Publish Topic"
-                             PlaceholderText="climate/data"
+                             PlaceholderText="topic/that"
                              IsEnabled="False"/>
 
                     <TextBox x:Name="MqttUsernameTextBox"
