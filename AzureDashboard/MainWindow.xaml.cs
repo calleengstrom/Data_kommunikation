@@ -4,7 +4,7 @@ using AzureDashboard.Models;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Media;
 using System;
-using System.Globalization;
+using System.Collections.ObjectModel;
 using System.Linq;
 using System.Text.Json;
 using System.Threading;
@@ -18,11 +18,13 @@ namespace AzureDashboard
         private CancellationTokenSource? _cts;
         private Task? _consumerTask;
 
+        public ObservableCollection<DeviceViewModel> Devices { get; }
+            = new();
+
         private readonly string? _connectionString =
             Environment.GetEnvironmentVariable(
                 "AZURE_EVENTHUB_CONNECTION_STRING") ??
-            "xxx";
-
+            "";
         public MainWindow()
         {
             InitializeComponent();
@@ -30,7 +32,7 @@ namespace AzureDashboard
             Title = "Azure Sensor Dashboard";
 
             AppWindow.Resize(
-                new Windows.Graphics.SizeInt32(800, 500));
+                new Windows.Graphics.SizeInt32(900, 550));
 
             Closed += (_, _) => _cts?.Cancel();
         }
@@ -86,8 +88,7 @@ namespace AzureDashboard
                         startReadingAtEarliestEvent: false,
                         cancellationToken: ct))
                 {
-                    var json =
-                        receivedEvent.Data.EventBody.ToString();
+                    var json = receivedEvent.Data.EventBody.ToString();
 
                     try
                     {
@@ -129,7 +130,6 @@ namespace AzureDashboard
             }
         }
 
-
         private static SensorData ParseMessage(string json)
         {
             var options = new JsonSerializerOptions
@@ -137,7 +137,8 @@ namespace AzureDashboard
                 PropertyNameCaseInsensitive = true
             };
 
-            var result = JsonSerializer.Deserialize<SensorData>(json, options);
+            var result =
+                JsonSerializer.Deserialize<SensorData>(json, options);
 
             if (result == null)
                 throw new JsonException("Failed to parse sensor data.");
@@ -145,91 +146,66 @@ namespace AzureDashboard
             return result;
         }
 
-
         public void UpdateDashboard(SensorData data)
         {
-
-            //reflektion, om man vill ha en mer dynamsik update kan man köra en foreach 
-
-            //foreach(var dm in data.MeasurementsPackage)
-            //{
-            //    set varje rad till respektive text / data
-            //}
-            // Dock behöver man en dynamsik panel / gui som lägger till flera rader per device
-
-
-
             GatewayText.Text = $"Gateway: {data.GatewayId}";
-            
 
-
-            var deviceMeasurements = data.MeasurementsPackage.First();
-            
-
-            DeviceIdText.Text = deviceMeasurements.DeviceId;
-
-
-            var temperature = deviceMeasurements.Measurements
-                .FirstOrDefault(m => m.MeasurementType == "Temperatue");
-
-            var humidity = deviceMeasurements.Measurements
-                .FirstOrDefault(m => m.MeasurementType == "Humidity");
-           
-            if (temperature == null || humidity == null) 
+            if (data.MeasurementsPackage != null)
             {
-                return;
+                foreach (var device in data.MeasurementsPackage)
+                {
+                    if (string.IsNullOrWhiteSpace(device.DeviceId))
+                        continue;
 
+                    // Find existing device using DeviceId
+                    var viewModel = Devices.FirstOrDefault(
+                        d => d.DeviceId == device.DeviceId);
+
+                    // Add new device if it doesn't exist
+                    if (viewModel == null)
+                    {
+                        viewModel = new DeviceViewModel(device.DeviceId);
+                        Devices.Add(viewModel);
+                    }
+
+                    // Update device information
+                    viewModel.Location =
+                        $"Location: {device.Location}";
+
+                    viewModel.ReceivedAt = device.ReceivedAt == default
+                        ? "Received at: --"
+                        : $"Received at: {device.ReceivedAt.ToLocalTime():yyyy-MM-dd HH:mm:ss}";
+
+                    if (device.Measurements == null)
+                        continue;
+
+                    // Temperature
+                    var temperature = device.Measurements
+                        .FirstOrDefault(m =>
+                            m.MeasurementType == "Temperature" ||
+                            m.MeasurementType == "Temperatue");
+
+                    if (temperature != null)
+                    {
+                        viewModel.Temperature =
+                            $"{temperature.Value:0.0}{temperature.Unit}";
+                    }
+
+                    // Humidity
+                    var humidity = device.Measurements
+                        .FirstOrDefault(m =>
+                            m.MeasurementType == "Humidity");
+
+                    if (humidity != null)
+                    {
+                        viewModel.Humidity =
+                            $"{humidity.Value:0.0}{humidity.Unit}";
+                    }
+                }
             }
-
-            var culture = CultureInfo.GetCultureInfo("sv-SE");
-
-            LocationText.Text = $"Location: {deviceMeasurements.Location}";
-
-            TemperatureText.Text = $"{temperature.Value}{temperature.Unit}";
-            
-              
-
-            HumidityText.Text = $"{humidity.Value}{humidity.Unit}";
-
-            
-
-
-            //*********************************************************************************
-
-            deviceMeasurements = data.MeasurementsPackage.Last();
-            temperature = deviceMeasurements.Measurements
-                .FirstOrDefault(m => m.MeasurementType == "Temperatue");
-
-            humidity = deviceMeasurements.Measurements
-                .FirstOrDefault(m => m.MeasurementType == "Humidity");
-
-
-            DeviceIdText2.Text = deviceMeasurements.DeviceId;
-
-            if (temperature == null || humidity == null)
-            {
-                return;
-
-            }
-
-            LocationText2.Text = $"Location: {deviceMeasurements.Location}";
-
-            TemperatureText2.Text = $"{temperature.Value}{temperature.Unit}";
-
-            //? $"{data.Temperature.Value.ToString("0.0", culture)} {data.TemperatureUnit}"
-            //: "--";
-
-            HumidityText2.Text = $"{humidity.Value}{humidity.Unit}";   
-
-            //? $"{data.Humidity.Value.ToString("0.0", culture)} {data.HumidityUnit}"
-            //: "--";
-
-
-
 
             LastUpdateText.Text =
                 $"Last update: {data.SentAt.ToLocalTime():yyyy-MM-dd HH:mm:ss}";
-
         }
 
         private void SetStatus(string message, bool connected)
