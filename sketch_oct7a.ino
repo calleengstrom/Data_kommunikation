@@ -263,7 +263,7 @@ void BLE_init() {
 
   pendingSettings = activeSettings;
 
-  BLEDevice::init("ESP32-Config");
+  BLEDevice::init("ESP32-CB:64");
 
   BLEServer* server = BLEDevice::createServer();
   BLEService* service = server->createService(BLEUUID(String(SERVICE_UUID)), 40);
@@ -551,8 +551,8 @@ void setup() {
 
 void loop() {
   if (!activeSettings.wifiSSID.isEmpty() && !activeSettings.wifiPassword.isEmpty()) {
-    Measurement_t temperature("Temperatue", DHT11_n::getTemperatureValue(), DHT11_n::getTemperatureUnit());
-    Measurement_t humidity("Humidity", DHT11_n::getHumidityValue(), DHT11_n::getHumidityUnit());
+    Measurement_t temperature("temperature", DHT11_n::getTemperatureValue(), DHT11_n::getTemperatureUnit());
+    Measurement_t humidity("humidity", DHT11_n::getHumidityValue(), DHT11_n::getHumidityUnit());
     if (temperature.isValid() && humidity.isValid()) {
       Measurement_t measurements[] = { temperature, humidity };
       Payload_t payload(activeSettings.deviceId, measurements, activeSettings.location);
