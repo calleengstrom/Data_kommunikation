@@ -183,7 +183,7 @@ namespace AzureDashboard
                     var temperature = device.Measurements
                         .FirstOrDefault(m =>
                             m.MeasurementType == "Temperature" ||
-                            m.MeasurementType == "Temperatue");
+                            m.MeasurementType == "temperature");
 
                     if (temperature != null)
                     {
@@ -194,7 +194,8 @@ namespace AzureDashboard
                     // Humidity
                     var humidity = device.Measurements
                         .FirstOrDefault(m =>
-                            m.MeasurementType == "Humidity");
+                            m.MeasurementType == "Humidity" ||
+                             m.MeasurementType == "humidity");
 
                     if (humidity != null)
                     {
