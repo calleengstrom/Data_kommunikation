@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "BLE_app (Package)": {
+      "commandName": "MsixPackage"
+    },
+    "BLE_app (Unpackaged)": {
+      "commandName": "Project"
+    }
+  }
+}
